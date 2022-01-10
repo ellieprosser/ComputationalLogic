@@ -17,11 +17,30 @@
 
 :-prompt(_Old,'prolexa> ').
 
+:- op(900,fy,not). % defined for use of not X
 
-%some intial stored rules
-stored_rule(1,[(mortal(X):-human(X))]).
-stored_rule(1,[(human(peter):-true)]).
+% Some intial stored rules
+% stored_rule(1,[(mortal(X):-human(X))]).
+% stored_rule(1,[(human(peter):-true)]).
 
+% Stored rules for testing negation
+% stored_rule(1,[(happy(X):-teacher(X))]).
+% stored_rule(1,[(not happy(donald):-true)]).
+% stored_rule(1,[(cute(X):-puppy(X))]).
+% stored_rule(1,[(not cute(donald):-true)]).
+
+% Stored rules for testing existential quantification
+% stored_rule(1,[(human(sk):-true), (genius(sk):-true)]).
+% stored_rule(1,[(win(X):-genius(X))]).
+% stored_rule(1,[(genius(donald):-true)]).
+
+% Stored rules for testing default rules
+% stored_rule(1,[(bird(X):-penguin(X))]). 
+% stored_rule(1,[(bird(X):-robin(X))]).
+% stored_rule(1,[(penguin(tweety):-true)]).
+% stored_rule(1,[(robin(rob):-true)]).
+% stored_rule(1,[(default(fly(X):-bird(X)))]).
+% stored_rule(1,[(not fly(X):-penguin(X))]). % exception to the default rule
 
 %%% Prolexa Command Line Interface %%%
 
@@ -67,7 +86,6 @@ handle_utterance(SessionId,Utterance,Answer):-
 
 write_debug(Atom):-
 	write(user_error,'*** '),writeln(user_error,Atom),flush_output(user_error).
-
 
 %%%%% the stuff below is only relevant if you want to create a voice-driven Alexa skill %%%%%
 
