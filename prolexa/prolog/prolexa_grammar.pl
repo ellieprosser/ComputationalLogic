@@ -5,7 +5,7 @@ utterance(C) --> question(C).
 utterance(C) --> command(C).
 
 :- op(600, xfy, '=>').
-
+:- op(900, fy, not). % defined for use of not X
 
 %%% lexicon, driven by predicates %%%
 
@@ -18,15 +18,15 @@ iverb(p,M)			--> [Verb],   {pred2gr(_P,1,v/Verb,M)}.
 % unary predicates for adjectives, nouns and verbs
 pred(human,   1,[a/human,n/human]).
 pred(mortal,  1,[a/mortal,n/mortal]).
-%pred(man,     1,[a/male,n/man]).
-%pred(woman,   1,[a/female,n/woman]).
-%pred(married, 1,[a/married]).
-%pred(bachelor,1,[n/bachelor]).
-%pred(mammal,  1,[n/mammal]).
+pred(happy, 1, [a/happy]).
+pred(teacher, 1, [n/teacher]).
+pred(cute, 1, [a/cute]).
+pred(puppy, 1, [n/puppy]).
+pred(genius,   1,[n/genius]).
+pred(win,     1,[v/win]).
 pred(bird,    1,[n/bird]).
-%pred(bat,     1,[n/bat]).
 pred(penguin, 1,[n/penguin]).
-pred(sparrow, 1,[n/sparrow]).
+pred(robin, 1,[n/robin]).
 pred(fly,     1,[v/fly]).
 
 pred2gr(P,1,C/W,X=>Lit):-
@@ -37,6 +37,7 @@ pred2gr(P,1,C/W,X=>Lit):-
 noun_s2p(Noun_s,Noun_p):-
 	( Noun_s=woman -> Noun_p=women
 	; Noun_s=man -> Noun_p=men
+	; Noun_s=genius -> Noun_p=geniuses % added for plural of genius
 	; atom_concat(Noun_s,s,Noun_p)
 	).
 
@@ -55,10 +56,18 @@ sword --> [that].
 
 % most of this follows Simply Logical, Chapter 7
 sentence1(C) --> determiner(N,M1,M2,C),noun(N,M1),verb_phrase(N,M2).
+sentence1([([H1,H2]:-true)]) --> determiner(N,M1,M2,[(H1:-true),(H2:-true)]),noun(N,M1),verb_phrase(N,M2). % for existential quantification
 sentence1([(L:-true)]) --> proper_noun(N,X),verb_phrase(N,X=>L).
+% Added the following for negations of terms
+sentence1([(not L:-true)]) --> proper_noun(N,X),verb_phrase(N,not X=>L).  % E.g., Donald is not a teacher
+sentence1([(not H:-B)]) --> determiner(N,M1,M2,[(not H:-B)]),noun(N,M1),verb_phrase(N,not M2). % E.g., all birds are not happy
 
 verb_phrase(s,M) --> [is],property(s,M).
+verb_phrase(s,not M) --> [is],[not],property(s,M).
 verb_phrase(p,M) --> [are],property(p,M).
+verb_phrase(p,not M) --> [are],[not],property(p,M). 
+verb_phrase(p,not M) --> [do],[not], iverb(p,M).
+verb_phrase(s,not M) --> [does],[not], iverb(p,M). 
 verb_phrase(N,M) --> iverb(N,M).
 
 property(N,M) --> adjective(N,M).
@@ -66,13 +75,19 @@ property(s,M) --> [a],noun(s,M).
 property(p,M) --> noun(p,M).
 
 determiner(s,X=>B,X=>H,[(H:-B)]) --> [every].
+determiner(s,X=>B,not X=>H,[(not H:-B)]) --> [every].
 determiner(p,X=>B,X=>H,[(H:-B)]) --> [all].
-%determiner(p,X=>B,X=>H,[(H:-B)]) --> [].
-%determiner(p, sk=>H1, sk=>H2, [(H1:-true),(H2 :- true)]) -->[some].
+determiner(p,X=>B,not X=>H,[(not H:-B)]) --> [all].
+determiner(p,X=>B,not X=>H,[(not H:-B)]) --> []. 
+determiner(p,X=>B,X=>H,[(H:-B)]) --> [].
+determiner(p, sk=>H1, sk=>H2, [(H1:-true),(H2 :- true)]) -->[some].
+determiner(p, sk=>H1, sk=>H2, [(H2:-true),(H1:-true)]) -->[some].
+determiner(p,X=>B,X=>H,[(default(H:-B))]) --> [most]. % 'most' to distinguish default rules from existential quantification which uses 'some'
 
-proper_noun(s,tweety) --> [tweety].
 proper_noun(s,peter) --> [peter].
-
+proper_noun(s,donald) --> [donald].
+proper_noun(s,tweety) --> [tweety].
+proper_noun(s,rob) --> [rob].
 
 %%% questions %%%
 
@@ -83,11 +98,11 @@ qword --> [].
 %qword --> [whether]. 
 
 question1(Q) --> [who],verb_phrase(s,_X=>Q).
+question1(not Q) --> [who],verb_phrase(s,[(not _X=>Q)]). 
 question1(Q) --> [is], proper_noun(N,X),property(N,X=>Q).
 question1(Q) --> [does],proper_noun(_,X),verb_phrase(_,X=>Q).
-%question1((Q1,Q2)) --> [are,some],noun(p,sk=>Q1),
-%					  property(p,sk=>Q2).
-
+question1((Q1,Q2)) --> [do],[some],noun(p,sk=>Q1),verb_phrase(p,sk=>Q2).
+question1((Q1,Q2)) --> [are],[some],noun(p,sk=>Q1),property(p,sk=>Q2).
 
 %%% commands %%%
 
@@ -104,7 +119,8 @@ command(g(retractall(prolexa:stored_rule(_,C)),"I erased it from my memory")) --
 command(g(retractall(prolexa:stored_rule(_,_)),"I am a blank slate")) --> forgetall. 
 command(g(all_rules(Answer),Answer)) --> kbdump. 
 command(g(all_answers(PN,Answer),Answer)) --> tellmeabout,proper_noun(s,PN).
-command(g(explain_question(Q,_,Answer),Answer)) --> [explain,why],sentence1([(Q:-true)]).
+command(g(explain_question(Q,_,Answer),Answer)) --> [explain],[why],sentence1([(Q:-true)]).
+command(g(explain_question([Q1,Q2],_,Answer),Answer)) --> [explain],[why],sentence1([(Q1:-true),(Q2:-true)]). % Explanation for existential quantification
 command(g(random_fact(Fact),Fact)) --> getanewfact.
 %command(g(pf(A),A)) --> peterflach. 
 %command(g(iai(A),A)) --> what. 
